@@ -1,0 +1,8 @@
+# Directories #
+.idea/
+__pycache__/
+src/model_weight/
+
+# files #
+*.txt
+*.csv

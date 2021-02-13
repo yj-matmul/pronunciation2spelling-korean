@@ -40,6 +40,7 @@ def text2ids(text_list, tokenizer, config, mode=str, use_test_normalization=Fals
             ids += eos
             ids += pad * (config.dec_max_seq_length - len(ids))
         ids_list.append(ids)
+    print(mode, 'minimum seq length:', max_length)
     if config.dec_max_seq_length < max_length:
         print('you need to set seq length more than', max_length)
     ids_list = torch.LongTensor(ids_list).to(config.device)

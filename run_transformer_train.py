@@ -32,8 +32,8 @@ if __name__ == '__main__':
     trg_vocab_size = len(vocab)
 
     # load your data
-    src_file_path = 'D:/Storage/side_project_data/pronunciation2spelling-korean/spelling.txt'
-    trg_file_path = 'D:/Storage/side_project_data/pronunciation2spelling-korean/pronunciation.txt'
+    src_file_path = 'D:/Storage/side_project_data/pronunciation2spelling-korean/pronunciation.txt'
+    trg_file_path = 'D:/Storage/side_project_data/pronunciation2spelling-korean/spelling.txt'
     with open(src_file_path, 'r', encoding='utf8') as f:
         src_lines = list(map(lambda x: x.strip('\n'), f.readlines()))
     with open(trg_file_path, 'r', encoding='utf8') as f:
@@ -51,19 +51,19 @@ if __name__ == '__main__':
                                feed_forward_size=2048,
                                padding_idx=0,
                                share_embeddings=True,
-                               enc_max_seq_length=256,
-                               dec_max_seq_length=256)
+                               enc_max_seq_length=128,
+                               dec_max_seq_length=128)
 
     model = Transformer(config).to(config.device)
 
     dataset = CustomDataset(src_lines, trg_lines, tokenizer, config)
     data_loader = DataLoader(dataset, batch_size=16, shuffle=True)
     criterion = nn.CrossEntropyLoss(ignore_index=0)
-    optimizer = optim.Adam(model.parameters(), lr=1e-5)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=2)
 
     train_continue = False
-    plus_epoch = 20
+    plus_epoch = 100
     if train_continue:
         weights = glob.glob('./weight/transformer_*')
         last_epoch = int(weights[-1].split('_')[-1])

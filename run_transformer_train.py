@@ -90,7 +90,7 @@ if __name__ == '__main__':
             optimizer.step()
             epoch_loss += loss
             if (iteration + 1) % 200 == 0:
-                print('Epoch: %3d\t' % (epoch + 1),
+                print('Epoch: %3d\t' % (last_epoch + epoch + 1),
                       'Iteration: %3d \t' % (iteration + 1),
                       'Cost: {:.5f}'.format(epoch_loss/(iteration + 1)))
         scheduler.step(epoch_loss)

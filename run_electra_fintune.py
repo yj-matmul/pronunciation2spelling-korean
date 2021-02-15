@@ -2,9 +2,9 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torch import optim
-from model.transformer import Transformer, TransformerConfig
+from model.transformer import Transformer, TransformerConfig, Decoders
 from utils import text2ids
-from transformers import ElectraTokenizer
+from transformers import ElectraTokenizer, ElectraModel
 import glob
 
 
@@ -24,8 +24,28 @@ class CustomDataset(Dataset):
         return x, y, z
 
 
+class Pronunciation2Spelling(nn.Module):
+    def __init__(self, config):
+        super(Pronunciation2Spelling, self).__init__()
+        # KoELECTRA-Small-v3
+        self.encoders = ElectraModel.from_pretrained("monologg/koelectra-base-v3-discriminator")
+        self.embedding = self.encoders.get_input_embeddings()
+        self.embedding_projection = nn.Linear(768, config.hidden_size)
+        self.decoders = Decoders(config)
+        self.dense = nn.Linear(config.hidden_size, config.trg_vocab_size)
+
+        self.padding_idx = config.padding_idx
+
+    def forward(self, enc_ids, dec_ids):
+        dec_embeddings = self.embedding_projection(self.embedding(dec_ids))
+        enc_outputs = self.encoders(enc_ids).last_hidden_state
+        dec_outputs, _, _ = self.decoders(enc_ids, enc_outputs, dec_ids, dec_embeddings)
+        model_output = self.dense(dec_outputs)
+        return model_output
+
+
 if __name__ == '__main__':
-    # we use pretrained tokenizer from monologg github
+    # we use pretrained tokenizer, encoders from monologg github
     tokenizer = ElectraTokenizer.from_pretrained('monologg/koelectra-base-v3-discriminator')
     vocab = tokenizer.get_vocab()
     src_vocab_size = len(vocab)
@@ -43,7 +63,7 @@ if __name__ == '__main__':
 
     config = TransformerConfig(src_vocab_size=src_vocab_size,
                                trg_vocab_size=trg_vocab_size,
-                               hidden_size=512,
+                               hidden_size=768,
                                num_hidden_layers=6,
                                num_attn_head=8,
                                hidden_act='gelu',
@@ -54,7 +74,7 @@ if __name__ == '__main__':
                                enc_max_seq_length=128,
                                dec_max_seq_length=128)
 
-    model = Transformer(config).to(config.device)
+    model = Pronunciation2Spelling(config).to(config.device)
 
     dataset = CustomDataset(src_lines, trg_lines, tokenizer, config)
     data_loader = DataLoader(dataset, batch_size=16, shuffle=True)
@@ -65,7 +85,7 @@ if __name__ == '__main__':
     train_continue = False
     plus_epoch = 30
     if train_continue:
-        weights = glob.glob('./weight/transformer_*')
+        weights = glob.glob('./weight/electra_*')
         last_epoch = int(weights[-1].split('_')[-1])
         weight_path = weights[-1].replace('\\', '/')
         print('weight info of last epoch', weight_path)
@@ -81,7 +101,7 @@ if __name__ == '__main__':
         for iteration, data in enumerate(data_loader):
             encoder_inputs, decoder_inputs, targets = data
             optimizer.zero_grad()
-            logits, _ = model(encoder_inputs, decoder_inputs)
+            logits = model(encoder_inputs, decoder_inputs)
             logits = logits.contiguous().view(-1, trg_vocab_size)
             targets = targets.contiguous().view(-1)
             loss = criterion(logits, targets)
@@ -94,5 +114,5 @@ if __name__ == '__main__':
                       'Iteration: %3d \t' % (iteration + 1),
                       'Cost: {:.5f}'.format(epoch_loss/(iteration + 1)))
         scheduler.step(epoch_loss)
-    model_path = './weight/transformer_%d' % total_epoch
+    model_path = './weight/electra_%d' % total_epoch
     torch.save(model.state_dict(), model_path)

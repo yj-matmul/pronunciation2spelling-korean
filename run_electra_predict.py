@@ -28,9 +28,11 @@ def predict(config, tokenizer, model, text):
     ids = dec_ids.to('cpu').numpy()
     tokens = tokenizer.convert_ids_to_tokens(ids)
     result = tokenizer.convert_tokens_to_string(tokens)
+    result2 = tokenizer.decode(ids)
     print('소요 시간:', time.time() - start)
     print('원래 문장:', text)
     print('변환 문장:', result)
+    print(result2)
     return result
 
 

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from model.transformer import Transformer, TransformerConfig, Decoders
 from utils import text2ids
-from transformers import ElectraTokenizer, ElectraModel
+from transformers import ElectraTokenizer, ElectraModel, ElectraConfig
 import time
 
 
@@ -36,8 +36,13 @@ def predict(config, tokenizer, model, text):
 class Pronunciation2Spelling(nn.Module):
     def __init__(self, config):
         super(Pronunciation2Spelling, self).__init__()
-        # KoELECTRA-Small-v3
-        self.encoders = ElectraModel.from_pretrained("monologg/koelectra-base-v3-discriminator")
+        electra_config = ElectraConfig(vocab_size=35000,
+                                       embedding_size=768,
+                                       hidden_size=768,
+                                       intermediate_size=3072,
+                                       max_position_embeddings=512,
+                                       num_attention_heads=12)
+        self.encoders = ElectraModel(electra_config)
         self.embedding = self.encoders.get_input_embeddings()
         self.embedding_projection = nn.Linear(768, config.hidden_size)
         self.decoders = Decoders(config)

@@ -29,7 +29,6 @@ class Pronunciation2Spelling(nn.Module):
         super(Pronunciation2Spelling, self).__init__()
         # KoELECTRA-base-v3
         self.encoders = ElectraModel.from_pretrained("monologg/koelectra-base-v3-discriminator")
-        print(self.encoders.config)
         self.embedding = self.encoders.get_input_embeddings()
         self.embedding_projection = nn.Linear(768, config.hidden_size)
         self.decoders = Decoders(config)

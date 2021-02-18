@@ -34,21 +34,16 @@ def predict(config, tokenizer, model, text):
 
 
 class Pronunciation2Spelling(nn.Module):
-    def __init__(self, config):
+    def __init__(self, enc_config, dec_config):
         super(Pronunciation2Spelling, self).__init__()
-        electra_config = ElectraConfig(vocab_size=35000,
-                                       embedding_size=768,
-                                       hidden_size=768,
-                                       intermediate_size=3072,
-                                       max_position_embeddings=512,
-                                       num_attention_heads=12)
-        self.encoders = ElectraModel(electra_config)
+        self.encoders = ElectraModel(enc_config)
         self.embedding = self.encoders.get_input_embeddings()
-        self.embedding_projection = nn.Linear(768, config.hidden_size)
-        self.decoders = Decoders(config)
-        self.dense = nn.Linear(config.hidden_size, config.trg_vocab_size)
+        if enc_config.embedding_size != dec_config.hidden_size:
+            self.embedding_projection = nn.Linear(enc_config.embedding_size, dec_config.hidden_size)
+        self.decoders = Decoders(dec_config)
+        self.dense = nn.Linear(dec_config.hidden_size, dec_config.trg_vocab_size)
 
-        self.padding_idx = config.padding_idx
+        self.padding_idx = dec_config.padding_idx
 
     def forward(self, enc_ids, dec_ids):
         dec_embeddings = self.embedding_projection(self.embedding(dec_ids))
@@ -60,27 +55,35 @@ class Pronunciation2Spelling(nn.Module):
 
 if __name__ == '__main__':
     # we use pretrained tokenizer from monologg github
-    tokenizer = ElectraTokenizer.from_pretrained('monologg/koelectra-base-v3-discriminator')
+    # tokenizer = ElectraTokenizer.from_pretrained('monologg/koelectra-base-v3-discriminator')
+    tokenizer = ElectraTokenizer.from_pretrained('tokenizer/huggingface_korean')
     vocab = tokenizer.get_vocab()
-    src_vocab_size = len(vocab)
-    trg_vocab_size = len(vocab)
+    electra_vocab_size, decoder_src_vocab_size, decoder_trg_vocab_size = len(vocab), len(vocab), len(vocab)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    transformer_config = TransformerConfig(src_vocab_size=src_vocab_size,
-                               trg_vocab_size=trg_vocab_size,
-                               hidden_size=768,
-                               num_hidden_layers=6,
-                               num_attn_head=8,
-                               hidden_act='gelu',
-                               device=device,
-                               feed_forward_size=2048,
-                               padding_idx=0,
-                               share_embeddings=True,
-                               enc_max_seq_length=128,
-                               dec_max_seq_length=128)
+    # electra config values are fixed since this model is already pretrained
+    electra_config = ElectraConfig(vocab_size=35000,
+                                   embedding_size=768,
+                                   hidden_size=768,
+                                   intermediate_size=3072,
+                                   max_position_embeddings=512,
+                                   num_attention_heads=12)
 
-    model = Pronunciation2Spelling(transformer_config).to(transformer_config.device)
+    decoder_config = TransformerConfig(src_vocab_size=decoder_src_vocab_size,
+                                       trg_vocab_size=decoder_trg_vocab_size,
+                                       hidden_size=768,
+                                       num_hidden_layers=6,
+                                       num_attn_head=8,
+                                       hidden_act='gelu',
+                                       device=device,
+                                       feed_forward_size=2048,
+                                       padding_idx=0,
+                                       share_embeddings=True,
+                                       enc_max_seq_length=128,
+                                       dec_max_seq_length=128)
+
+    model = Pronunciation2Spelling(decoder_config).to(decoder_config.device)
 
     model_path = './weight/electra_30'
     model.load_state_dict(torch.load(model_path))

@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    config = TransformerConfig(src_vocab_size=src_vocab_size,
+    transformer_config = TransformerConfig(src_vocab_size=src_vocab_size,
                                trg_vocab_size=trg_vocab_size,
                                hidden_size=768,
                                num_hidden_layers=6,
@@ -80,7 +80,7 @@ if __name__ == '__main__':
                                enc_max_seq_length=128,
                                dec_max_seq_length=128)
 
-    model = Pronunciation2Spelling(config).to(config.device)
+    model = Pronunciation2Spelling(transformer_config).to(transformer_config.device)
 
     model_path = './weight/electra_30'
     model.load_state_dict(torch.load(model_path))
@@ -94,4 +94,4 @@ if __name__ == '__main__':
                  '브이아이피 고객님은 투플러스원 상품으로 치토스와 포카칩을 같이 구매할 수 있습니다.',
                  '현재 대한민국과 북한의 점수는 일대일입니다.']
     for s in sentences:
-        result = predict(config, tokenizer, model, s)
+        result = predict(transformer_config, tokenizer, model, s)

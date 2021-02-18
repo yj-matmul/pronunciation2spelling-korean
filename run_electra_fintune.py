@@ -27,7 +27,7 @@ class CustomDataset(Dataset):
 class Pronunciation2Spelling(nn.Module):
     def __init__(self, config):
         super(Pronunciation2Spelling, self).__init__()
-        # KoELECTRA-Small-v3
+        # KoELECTRA-base-v3
         self.encoders = ElectraModel.from_pretrained("monologg/koelectra-base-v3-discriminator")
         self.embedding = self.encoders.get_input_embeddings()
         self.embedding_projection = nn.Linear(768, config.hidden_size)
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     src_vocab_size = len(vocab)
     trg_vocab_size = len(vocab)
 
-    # load your data
+    # please set your custom data path
     src_file_path = 'D:/Storage/side_project_data/pronunciation2spelling-korean/pronunciation.txt'
     trg_file_path = 'D:/Storage/side_project_data/pronunciation2spelling-korean/spelling.txt'
     with open(src_file_path, 'r', encoding='utf8') as f:

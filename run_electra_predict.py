@@ -46,7 +46,9 @@ class Pronunciation2Spelling(nn.Module):
         self.padding_idx = dec_config.padding_idx
 
     def forward(self, enc_ids, dec_ids):
-        dec_embeddings = self.embedding_projection(self.embedding(dec_ids))
+        dec_embeddings = self.embedding(dec_ids)
+        if hasattr(self, 'embedding_projection'):
+            dec_embeddings = self.embedding_projection(dec_embeddings)
         enc_outputs = self.encoders(enc_ids).last_hidden_state
         dec_outputs, _, _ = self.decoders(enc_ids, enc_outputs, dec_ids, dec_embeddings)
         model_output = self.dense(dec_outputs)
@@ -83,7 +85,7 @@ if __name__ == '__main__':
                                        enc_max_seq_length=128,
                                        dec_max_seq_length=128)
 
-    model = Pronunciation2Spelling(decoder_config).to(decoder_config.device)
+    model = Pronunciation2Spelling(electra_config, decoder_config).to(decoder_config.device)
 
     model_path = './weight/electra_30'
     model.load_state_dict(torch.load(model_path))

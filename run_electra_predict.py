@@ -54,6 +54,9 @@ class Pronunciation2Spelling(nn.Module):
         model_output = self.dense(dec_outputs)
         return model_output
 
+    def predict_sentence(self, text):
+        return result
+
 
 if __name__ == '__main__':
     # we use pretrained tokenizer from monologg github

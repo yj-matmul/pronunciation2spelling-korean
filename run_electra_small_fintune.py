@@ -85,7 +85,7 @@ if __name__ == '__main__':
     train_continue = False
     plus_epoch = 30
     if train_continue:
-        weights = glob.glob('./weight/electra_*')
+        weights = glob.glob('./weight/electra_small_*')
         last_epoch = int(weights[-1].split('_')[-1])
         weight_path = weights[-1].replace('\\', '/')
         print('weight info of last epoch', weight_path)
@@ -114,5 +114,5 @@ if __name__ == '__main__':
                       'Iteration: %3d \t' % (iteration + 1),
                       'Cost: {:.5f}'.format(epoch_loss/(iteration + 1)))
         scheduler.step(epoch_loss)
-    model_path = './weight/electra_%d' % total_epoch
+    model_path = './weight/electra_small_%d' % total_epoch
     torch.save(model.state_dict(), model_path)

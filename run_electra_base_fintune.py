@@ -25,16 +25,16 @@ class CustomDataset(Dataset):
 
 
 class Pronunciation2Spelling(nn.Module):
-    def __init__(self, config):
+    def __init__(self, dec_config):
         super(Pronunciation2Spelling, self).__init__()
         # KoELECTRA-base-v3
         self.encoders = ElectraModel.from_pretrained("monologg/koelectra-base-v3-discriminator")
         self.embedding = self.encoders.get_input_embeddings()
-        self.embedding_projection = nn.Linear(768, config.hidden_size)
-        self.decoders = Decoders(config)
-        self.dense = nn.Linear(config.hidden_size, config.trg_vocab_size)
+        self.embedding_projection = nn.Linear(768, dec_config.hidden_size)
+        self.decoders = Decoders(dec_config)
+        self.dense = nn.Linear(dec_config.hidden_size, dec_config.trg_vocab_size)
 
-        self.padding_idx = config.padding_idx
+        self.padding_idx = dec_config.padding_idx
 
     def forward(self, enc_ids, dec_ids):
         dec_embeddings = self.embedding_projection(self.embedding(dec_ids))
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     train_continue = False
     plus_epoch = 30
     if train_continue:
-        weights = glob.glob('./weight/electra_*')
+        weights = glob.glob('./weight/electra_base_*')
         last_epoch = int(weights[-1].split('_')[-1])
         weight_path = weights[-1].replace('\\', '/')
         print('weight info of last epoch', weight_path)
@@ -114,5 +114,5 @@ if __name__ == '__main__':
                       'Iteration: %3d \t' % (iteration + 1),
                       'Cost: {:.5f}'.format(epoch_loss/(iteration + 1)))
         scheduler.step(epoch_loss)
-    model_path = './weight/electra_%d' % total_epoch
+    model_path = './weight/electra_base_%d' % total_epoch
     torch.save(model.state_dict(), model_path)

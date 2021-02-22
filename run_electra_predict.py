@@ -54,9 +54,6 @@ class Pronunciation2Spelling(nn.Module):
         model_output = self.dense(dec_outputs)
         return model_output
 
-    def predict_sentence(self, text):
-        return result
-
 
 if __name__ == '__main__':
     # we use pretrained tokenizer from monologg github
@@ -102,4 +99,4 @@ if __name__ == '__main__':
                  '브이아이피 고객님은 투플러스원 상품으로 치토스와 포카칩을 같이 구매할 수 있습니다.',
                  '현재 대한민국과 북한의 점수는 일대일입니다.']
     for s in sentences:
-        result = predict(transformer_config, tokenizer, model, s)
+        result = predict(decoder_config, tokenizer, model, s)

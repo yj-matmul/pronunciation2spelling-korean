@@ -6,6 +6,7 @@ from model.transformer import TransformerConfig, Decoders
 from utils import text2ids
 from transformers import ElectraTokenizer, ElectraModel, ElectraConfig
 import glob
+import time
 
 
 class CustomDataset(Dataset):
@@ -86,13 +87,13 @@ if __name__ == '__main__':
                                        dec_max_seq_length=128)
 
     dataset = CustomDataset(src_lines, trg_lines, tokenizer, decoder_config)
-    first_train = False
+    first_train = True
     batch_size = 32
     lr = 1e-4
     dataset = CustomDataset(src_lines, trg_lines, tokenizer, decoder_config)
     total_iteration = int(dataset.__len__() // batch_size) + 1
     log_iteration = total_iteration // 3
-    patience = total_iteration // 2
+    patience = 1  # total_iteration // 2
     plus_epoch = 20
 
     model = Pronunciation2Spelling(electra_config, decoder_config, first_train).to(decoder_config.device)
@@ -116,6 +117,7 @@ if __name__ == '__main__':
         total_epoch = last_epoch + plus_epoch
 
     model.train()
+    start_time = time.time()
     for epoch in range(plus_epoch):
         epoch_loss = 0
         for iteration, data in enumerate(data_loader):
@@ -131,8 +133,10 @@ if __name__ == '__main__':
             epoch_loss += loss
             if (iteration + 1) % log_iteration == 0:
                 print('Epoch: %3d\t' % (last_epoch + epoch + 1),
-                      'Iteration: %3d \t' % (iteration + 1),
-                      'Cost: {:.5f}'.format(epoch_loss/(iteration + 1)))
-            scheduler.step(loss)
+                      'Iteration: %4d\t' % (iteration + 1),
+                      'Cost: {:.5f}'.format(epoch_loss/(iteration + 1)),
+                      'LR: {:.6f}'.format(lr))
+        scheduler.step(epoch_loss)
+    print('running time for train: {:.2f}'.format((time.time() - start_time) / 60))
     model_path = './weight/electra_small_%d' % total_epoch
     torch.save(model.state_dict(), model_path)

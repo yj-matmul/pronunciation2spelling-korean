@@ -25,20 +25,25 @@ class CustomDataset(Dataset):
 
 
 class Pronunciation2Spelling(nn.Module):
-    def __init__(self, config):
+    def __init__(self, enc_config, dec_config, first_train):
         super(Pronunciation2Spelling, self).__init__()
         # KoELECTRA-base-v3
-        self.encoders = ElectraModel.from_pretrained("monologg/koelectra-base-v3-discriminator")
-        self.embedding = self.encoders.get_input_embeddings()
-        self.embedding_projection = nn.Linear(768, config.hidden_size)
-        self.decoders = Decoders(config)
-        self.dense = nn.Linear(config.hidden_size, config.trg_vocab_size)
+        self.electra = ElectraModel(enc_config)
+        if first_train:
+            self.electra.load_state_dict(torch.load('../pretrained/electra_pretrained_small'))
+        self.embedding = self.electra.get_input_embeddings()
+        if enc_config.embedding_size != dec_config.hidden_size:
+            self.embedding_projection = nn.Linear(enc_config.embedding_size, dec_config.hidden_size)
+        self.decoders = Decoders(dec_config)
+        self.dense = nn.Linear(dec_config.hidden_size, dec_config.trg_vocab_size)
 
-        self.padding_idx = config.padding_idx
+        self.padding_idx = dec_config.padding_idx
 
     def forward(self, enc_ids, dec_ids):
-        dec_embeddings = self.embedding_projection(self.embedding(dec_ids))
-        enc_outputs = self.encoders(enc_ids).last_hidden_state
+        dec_embeddings = self.embedding(dec_ids)
+        if hasattr(self, 'embedding_projection'):
+            dec_embeddings = self.embedding_projection(dec_embeddings)
+        enc_outputs = self.electra(enc_ids).last_hidden_state
         dec_outputs, _, _ = self.decoders(enc_ids, enc_outputs, dec_ids, dec_embeddings)
         model_output = self.dense(dec_outputs)
         return model_output
@@ -67,7 +72,6 @@ if __name__ == '__main__':
                                    intermediate_size=1024,
                                    max_position_embeddings=512,
                                    num_attention_heads=4)
-
     decoder_config = TransformerConfig(src_vocab_size=decoder_src_vocab_size,
                                        trg_vocab_size=decoder_trg_vocab_size,
                                        hidden_size=256,
@@ -78,23 +82,31 @@ if __name__ == '__main__':
                                        feed_forward_size=1024,
                                        padding_idx=0,
                                        share_embeddings=True,
-                                       enc_max_seq_length=256,
-                                       dec_max_seq_length=256)
+                                       enc_max_seq_length=128,
+                                       dec_max_seq_length=128)
 
-    model = Pronunciation2Spelling(decoder_config).to(decoder_config.device)
-
-    batch_size = 64
-    lr = 1e-4
-    patience = 2
     dataset = CustomDataset(src_lines, trg_lines, tokenizer, decoder_config)
+    first_train = False
+    batch_size = 32
+    lr = 1e-4
+    dataset = CustomDataset(src_lines, trg_lines, tokenizer, decoder_config)
+    total_iteration = int(dataset.__len__() // batch_size) + 1
+    log_iteration = total_iteration // 3
+    patience = total_iteration // 2
+    plus_epoch = 20
+
+    model = Pronunciation2Spelling(electra_config, decoder_config, first_train).to(decoder_config.device)
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     criterion = nn.CrossEntropyLoss(ignore_index=decoder_config.padding_idx)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=patience)
 
-    train_continue = False
-    plus_epoch = 30
-    if train_continue:
+    if first_train:
+        # first finetune (only have encoder pretrained weight)
+        last_epoch = 0
+        total_epoch = plus_epoch
+
+    else:
         # continue finetune
         weights = glob.glob('./weight/electra_small_*')
         last_epoch = int(weights[-1].split('_')[-1])
@@ -102,10 +114,6 @@ if __name__ == '__main__':
         print('weight info of last epoch', weight_path)
         model.load_state_dict(torch.load(weight_path))
         total_epoch = last_epoch + plus_epoch
-    else:
-        # first finetune (only have encoder pretrained weight)
-        last_epoch = 0
-        total_epoch = plus_epoch
 
     model.train()
     for epoch in range(plus_epoch):
@@ -121,10 +129,10 @@ if __name__ == '__main__':
             nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             optimizer.step()
             epoch_loss += loss
-            if (iteration + 1) % 500 == 0:
+            if (iteration + 1) % log_iteration == 0:
                 print('Epoch: %3d\t' % (last_epoch + epoch + 1),
                       'Iteration: %3d \t' % (iteration + 1),
                       'Cost: {:.5f}'.format(epoch_loss/(iteration + 1)))
-        scheduler.step(epoch_loss)
+            scheduler.step(loss)
     model_path = './weight/electra_small_%d' % total_epoch
     torch.save(model.state_dict(), model_path)

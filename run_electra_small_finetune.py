@@ -2,9 +2,9 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torch import optim
-from model.transformer import Transformer, TransformerConfig, Decoders
+from model.transformer import TransformerConfig, Decoders
 from utils import text2ids
-from transformers import ElectraTokenizer, ElectraModel
+from transformers import ElectraTokenizer, ElectraModel, ElectraConfig
 import glob
 
 
@@ -46,10 +46,9 @@ class Pronunciation2Spelling(nn.Module):
 
 if __name__ == '__main__':
     # we use pretrained tokenizer, encoders from monologg github
-    tokenizer = ElectraTokenizer.from_pretrained('monologg/koelectra-base-v3-discriminator')
+    tokenizer = ElectraTokenizer.from_pretrained('../pretrained/huggingface_korean')
     vocab = tokenizer.get_vocab()
-    src_vocab_size = len(vocab)
-    trg_vocab_size = len(vocab)
+    electra_vocab_size, decoder_src_vocab_size, decoder_trg_vocab_size = len(vocab), len(vocab), len(vocab)
 
     # please set your custom data path
     src_file_path = 'D:/Storage/side_project_data/pronunciation2spelling-korean/pronunciation.txt'
@@ -61,30 +60,42 @@ if __name__ == '__main__':
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    config = TransformerConfig(src_vocab_size=src_vocab_size,
-                               trg_vocab_size=trg_vocab_size,
-                               hidden_size=768,
-                               num_hidden_layers=6,
-                               num_attn_head=8,
-                               hidden_act='gelu',
-                               device=device,
-                               feed_forward_size=2048,
-                               padding_idx=0,
-                               share_embeddings=True,
-                               enc_max_seq_length=128,
-                               dec_max_seq_length=128)
+    # electra config values are fixed since this model is already pretrained
+    electra_config = ElectraConfig(vocab_size=35000,
+                                   embedding_size=128,
+                                   hidden_size=256,
+                                   intermediate_size=1024,
+                                   max_position_embeddings=512,
+                                   num_attention_heads=4)
 
-    model = Pronunciation2Spelling(config).to(config.device)
+    decoder_config = TransformerConfig(src_vocab_size=decoder_src_vocab_size,
+                                       trg_vocab_size=decoder_trg_vocab_size,
+                                       hidden_size=256,
+                                       num_hidden_layers=12,
+                                       num_attn_head=4,
+                                       hidden_act='gelu',
+                                       device=device,
+                                       feed_forward_size=1024,
+                                       padding_idx=0,
+                                       share_embeddings=True,
+                                       enc_max_seq_length=256,
+                                       dec_max_seq_length=256)
 
-    dataset = CustomDataset(src_lines, trg_lines, tokenizer, config)
-    data_loader = DataLoader(dataset, batch_size=16, shuffle=True)
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=2)
+    model = Pronunciation2Spelling(decoder_config).to(decoder_config.device)
+
+    batch_size = 64
+    lr = 1e-4
+    patience = 2
+    dataset = CustomDataset(src_lines, trg_lines, tokenizer, decoder_config)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    criterion = nn.CrossEntropyLoss(ignore_index=decoder_config.padding_idx)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=patience)
 
     train_continue = False
     plus_epoch = 30
     if train_continue:
+        # continue finetune
         weights = glob.glob('./weight/electra_small_*')
         last_epoch = int(weights[-1].split('_')[-1])
         weight_path = weights[-1].replace('\\', '/')
@@ -92,6 +103,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(weight_path))
         total_epoch = last_epoch + plus_epoch
     else:
+        # first finetune (only have encoder pretrained weight)
         last_epoch = 0
         total_epoch = plus_epoch
 
@@ -102,7 +114,7 @@ if __name__ == '__main__':
             encoder_inputs, decoder_inputs, targets = data
             optimizer.zero_grad()
             logits = model(encoder_inputs, decoder_inputs)
-            logits = logits.contiguous().view(-1, trg_vocab_size)
+            logits = logits.contiguous().view(-1, decoder_trg_vocab_size)
             targets = targets.contiguous().view(-1)
             loss = criterion(logits, targets)
             loss.backward()

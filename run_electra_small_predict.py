@@ -85,15 +85,14 @@ if __name__ == '__main__':
 
     model = Pronunciation2Spelling(electra_config, decoder_config).to(decoder_config.device)
 
-    model_path = './weight/electra_small_20'
+    model_path = './weight/electra_small_40'
     model.load_state_dict(torch.load(model_path))
 
-    sentences = ['책 한 권을 빌리시게 되면 지금으로부터 사주 동안 빌릴 수 있습니다. 할인해주세요.',
+    sentences = ['책 한권을 빌리시게 되면 지금으로부터 사주 동안 빌릴 수 있습니다. 할인해주세요.',
                  '이벤트 할인은 일일 일회 제한이며 십퍼센트 할인이 가능하며 중복 할인은 적용되지 않습니다.',
                  '해당 상품은 만이천팔백원입니다.',
                  '번호는 공일공 구구공공 공구팔구이고 이전에 두번 방문했습니다.',
-                 '고객님의 객실은 비동 천이백이호이고 객실키는 2개 제공됩니다.',
-                 '가랑비에 옷 젖는 줄 모른다.',
+                 '고객님의 객실은 비동 천이백이호이고 객실키는 두개 제공됩니다.',
                  '브이아이피 고객님은 투플러스원 상품으로 치토스와 포카칩을 같이 구매할 수 있습니다.',
                  '현재 대한민국과 북한의 점수는 일대일입니다.']
     for s in sentences:

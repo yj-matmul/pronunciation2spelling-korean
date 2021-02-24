@@ -94,7 +94,7 @@ if __name__ == '__main__':
     total_iteration = int(dataset.__len__() // batch_size) + 1
     log_iteration = total_iteration // 2
     patience = 1  # total_iteration // 2
-    plus_epoch = 20
+    plus_epoch = 10
 
     model = Pronunciation2Spelling(electra_config, decoder_config, first_train).to(decoder_config.device)
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -116,6 +116,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(weight_path))
         total_epoch = last_epoch + plus_epoch
 
+
     model.train()
     start_time = time.time()
     for epoch in range(plus_epoch):
@@ -134,8 +135,8 @@ if __name__ == '__main__':
             if (iteration + 1) % log_iteration == 0:
                 print('Epoch: %3d\t' % (last_epoch + epoch + 1),
                       'Iteration: %4d\t' % (iteration + 1),
-                      'Cost: {:.5f}'.format(epoch_loss/(iteration + 1)),
-                      'LR: {:.6f}'.format(lr))
+                      'Cost: {:.5f}\t'.format(epoch_loss/(iteration + 1)),
+                      'LR: {:.6f}'.format(optimizer.param_groups[0]['lr']))
         scheduler.step(epoch_loss)
     print('running time for train: {:.2f}'.format((time.time() - start_time) / 60))
     model_path = './weight/electra_small_%d' % total_epoch

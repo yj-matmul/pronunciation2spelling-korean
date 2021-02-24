@@ -85,14 +85,14 @@ if __name__ == '__main__':
                                        share_embeddings=True,
                                        enc_max_seq_length=128,
                                        dec_max_seq_length=128)
-
     dataset = CustomDataset(src_lines, trg_lines, tokenizer, decoder_config)
-    first_train = True
+
+    first_train = False
     batch_size = 32
     lr = 1e-4
     dataset = CustomDataset(src_lines, trg_lines, tokenizer, decoder_config)
     total_iteration = int(dataset.__len__() // batch_size) + 1
-    log_iteration = total_iteration // 3
+    log_iteration = total_iteration // 2
     patience = 1  # total_iteration // 2
     plus_epoch = 20
 

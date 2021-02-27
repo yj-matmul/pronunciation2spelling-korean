@@ -65,12 +65,14 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # electra config values are fixed since this model is already pretrained
-    electra_config = ElectraConfig(vocab_size=35000,
-                                   embedding_size=768,
-                                   hidden_size=768,
-                                   intermediate_size=3072,
-                                   max_position_embeddings=512,
-                                   num_attention_heads=12)
+    model_choose = 'base'
+    if model_choose == 'base':
+        electra_config = ElectraConfig(vocab_size=35000,
+                                       embedding_size=768,
+                                       hidden_size=768,
+                                       intermediate_size=3072,
+                                       max_position_embeddings=512,
+                                       num_attention_heads=12)
 
     decoder_config = TransformerConfig(src_vocab_size=decoder_src_vocab_size,
                                        trg_vocab_size=decoder_trg_vocab_size,

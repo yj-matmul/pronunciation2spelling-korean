@@ -93,7 +93,7 @@ if __name__ == '__main__':
     dataset = CustomDataset(src_lines, trg_lines, tokenizer, decoder_config)
     total_iteration = int(dataset.__len__() // batch_size) + 1
     log_iteration = total_iteration // 2
-    patience = 1  # total_iteration // 2
+    patience = 1
     plus_epoch = 10
 
     model = Pronunciation2Spelling(electra_config, decoder_config, first_train).to(decoder_config.device)

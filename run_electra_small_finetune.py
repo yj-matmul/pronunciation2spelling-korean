@@ -28,7 +28,7 @@ class CustomDataset(Dataset):
 class Pronunciation2Spelling(nn.Module):
     def __init__(self, enc_config, dec_config, first_train):
         super(Pronunciation2Spelling, self).__init__()
-        # KoELECTRA-base-v3
+        # KoELECTRA-small-v3
         self.electra = ElectraModel(enc_config)
         if first_train:
             self.electra.load_state_dict(torch.load('../pretrained/electra_pretrained_small'))
@@ -115,7 +115,6 @@ if __name__ == '__main__':
         print('weight info of last epoch', weight_path)
         model.load_state_dict(torch.load(weight_path))
         total_epoch = last_epoch + plus_epoch
-
 
     model.train()
     start_time = time.time()

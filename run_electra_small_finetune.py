@@ -106,7 +106,6 @@ if __name__ == '__main__':
         # first finetune (only have encoder pretrained weight)
         last_epoch = 0
         total_epoch = plus_epoch
-
     else:
         # continue finetune
         weights = glob.glob('./weight/electra_small_*')

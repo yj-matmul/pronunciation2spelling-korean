@@ -65,6 +65,7 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # electra config values are fixed since this model is already pretrained
+    train_epoch = 50
     model_choose = 'base'
     if model_choose == 'base':
         electra_config = ElectraConfig(vocab_size=35000,
@@ -73,6 +74,7 @@ if __name__ == '__main__':
                                        intermediate_size=3072,
                                        max_position_embeddings=512,
                                        num_attention_heads=12)
+        model_path = './weight/electra_base_' + str(train_epoch)
     elif model_choose == 'small':
         electra_config = ElectraConfig(vocab_size=35000,
                                        embedding_size=128,
@@ -80,6 +82,7 @@ if __name__ == '__main__':
                                        intermediate_size=1024,
                                        max_position_embeddings=512,
                                        num_attention_heads=4)
+        model_path = './weight/electra_small_30' + str(train_epoch)
     decoder_config = TransformerConfig(src_vocab_size=decoder_src_vocab_size,
                                        trg_vocab_size=decoder_trg_vocab_size,
                                        hidden_size=768,
@@ -94,8 +97,6 @@ if __name__ == '__main__':
                                        dec_max_seq_length=128)
 
     model = Pronunciation2Spelling(electra_config, decoder_config).to(decoder_config.device)
-
-    model_path = './weight/electra_30'
     model.load_state_dict(torch.load(model_path))
 
     sentences = ['책 한 권을 빌리시게 되면 지금으로부터 사주 동안 빌릴 수 있습니다. 할인해주세요.',

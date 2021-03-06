@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from model.transformer import Transformer, TransformerConfig, Decoders
+from model.transformer import TransformerConfig, Decoders
 from utils import text2ids
 from transformers import ElectraTokenizer, ElectraModel, ElectraConfig
 import time

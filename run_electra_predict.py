@@ -82,7 +82,7 @@ if __name__ == '__main__':
                                        intermediate_size=1024,
                                        max_position_embeddings=512,
                                        num_attention_heads=4)
-        model_path = './weight/electra_small_30' + str(train_epoch)
+        model_path = './weight/electra_small_' + str(train_epoch)
     decoder_config = TransformerConfig(src_vocab_size=decoder_src_vocab_size,
                                        trg_vocab_size=decoder_trg_vocab_size,
                                        hidden_size=768,
